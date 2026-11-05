@@ -1,16 +1,19 @@
 <?php
-include "config.php";
+require "config.php";
 
-$termo = $_GET["q"];
+$termo = $_GET["q"] ?? "";
+$like  = "%" . $termo . "%";
 
-// SQL Injection
-$result = mysqli_query($conn, "SELECT * FROM produtos WHERE nome LIKE '%" . $termo . "%'");
+$stmt = $conn->prepare("SELECT nome, preco FROM produtos WHERE nome LIKE ?");
+$stmt->bind_param("s", $like);
+$stmt->execute();
+$result = $stmt->get_result();
 
-// XSS refletido
-echo "<h2>Resultados para: " . $_GET["q"] . "</h2>";
+echo "<h2>Resultados para: " . htmlspecialchars($termo, ENT_QUOTES, "UTF-8") . "</h2>";
 
-while ($row = mysqli_fetch_assoc($result)) {
-    echo "<p>" . $row["nome"] . " - R$ " . $row["preco"] . "</p>";
+while ($row = $result->fetch_assoc()) {
+    echo "<p>" . htmlspecialchars($row["nome"], ENT_QUOTES, "UTF-8")
+       . " - R$ " . htmlspecialchars($row["preco"], ENT_QUOTES, "UTF-8") . "</p>";
 }
 ?>
 <form method="GET">

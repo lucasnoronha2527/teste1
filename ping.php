@@ -1,10 +1,17 @@
 <?php
-// Command Injection: entrada do usuário vai direto para o shell
 if (isset($_GET["host"])) {
     $host = $_GET["host"];
-    echo "<pre>";
-    system("ping -c 1 " . $host);
-    echo "</pre>";
+
+    // Valida: só aceita IP ou nome de domínio válidos
+    if (!filter_var($host, FILTER_VALIDATE_IP) &&
+        !filter_var($host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME)) {
+        exit("Host inválido.");
+    }
+
+    // escapeshellarg neutraliza caracteres especiais do shell
+    $saida = [];
+    exec("ping -c 1 " . escapeshellarg($host), $saida);
+    echo "<pre>" . htmlspecialchars(implode("\n", $saida), ENT_QUOTES, "UTF-8") . "</pre>";
 }
 ?>
 <form method="GET">

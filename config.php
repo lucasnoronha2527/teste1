@@ -1,9 +1,11 @@
 <?php
-// Configuração do banco de dados (VERSÃO VULNERÁVEL - uso acadêmico)
-$host = "localhost";
-$user = "root";
-$password = "admin123";   // senha fixa no código
-$dbname = "loja";
+// Credenciais vêm de variáveis de ambiente, nunca ficam no código
+$host     = getenv("DB_HOST") ?: "localhost";
+$user     = getenv("DB_USER") ?: "app_user";
+$password = getenv("DB_PASSWORD");
+$dbname   = getenv("DB_NAME") ?: "loja";
 
-$conn = mysqli_connect($host, $user, $password, $dbname);
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+$conn = new mysqli($host, $user, $password, $dbname);
+$conn->set_charset("utf8mb4");
 ?>

@@ -1,13 +1,22 @@
 <?php
-include "config.php";
+require "config.php";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $nome  = $_POST["nome"];
-    $email = $_POST["email"];
-    $senha = md5($_POST["senha"]);   // hash fraco
+    $nome  = trim($_POST["nome"] ?? "");
+    $email = filter_var($_POST["email"] ?? "", FILTER_VALIDATE_EMAIL);
+    $senha = $_POST["senha"] ?? "";
 
-    $sql = "INSERT INTO usuarios (nome, email, senha) VALUES ('$nome', '$email', '$senha')";
-    mysqli_query($conn, $sql);
+    if ($nome === "" || !$email || strlen($senha) < 8) {
+        exit("Dados inválidos.");
+    }
+
+    // password_hash usa bcrypt com salt automático
+    $hash = password_hash($senha, PASSWORD_DEFAULT);
+
+    // Prepared statement evita SQL Injection
+    $stmt = $conn->prepare("INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)");
+    $stmt->bind_param("sss", $nome, $email, $hash);
+    $stmt->execute();
     echo "Usuário cadastrado com sucesso!";
 }
 ?>

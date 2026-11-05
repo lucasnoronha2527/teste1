@@ -1,18 +1,22 @@
 <?php
-include "config.php";
+require "config.php";
 session_start();
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $email = $_POST["email"];
-    $senha = md5($_POST["senha"]);
+    $email = $_POST["email"] ?? "";
+    $senha = $_POST["senha"] ?? "";
 
-    // SQL Injection: entrada do usuário concatenada na query
-    $sql = "SELECT * FROM usuarios WHERE email = '" . $email . "' AND senha = '" . $senha . "'";
-    $result = mysqli_query($conn, $sql);
+    $stmt = $conn->prepare("SELECT senha FROM usuarios WHERE email = ?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
 
-    if (mysqli_num_rows($result) > 0) {
+    // password_verify compara a senha com o hash bcrypt
+    if ($row && password_verify($senha, $row["senha"])) {
+        session_regenerate_id(true);
         $_SESSION["usuario"] = $email;
-        echo "Bem-vindo, " . $_POST["email"];   // XSS refletido
+        // htmlspecialchars evita XSS
+        echo "Bem-vindo, " . htmlspecialchars($email, ENT_QUOTES, "UTF-8");
     } else {
         echo "Login inválido";
     }
