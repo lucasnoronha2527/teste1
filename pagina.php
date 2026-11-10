@@ -1,11 +1,19 @@
 <?php
-// Lista branca: só páginas previamente permitidas podem ser incluídas
-$permitidas = ["home" => "home.php", "sobre" => "sobre.php", "contato" => "contato.php"];
 $pagina = $_GET["p"] ?? "home";
 
-if (!array_key_exists($pagina, $permitidas)) {
-    http_response_code(404);
-    exit("Página não encontrada.");
+// Cada caso inclui um arquivo fixo: a entrada do usuário nunca vira caminho
+switch ($pagina) {
+    case "home":
+        require __DIR__ . "/home.php";
+        break;
+    case "sobre":
+        require __DIR__ . "/sobre.php";
+        break;
+    case "contato":
+        require __DIR__ . "/contato.php";
+        break;
+    default:
+        http_response_code(404);
+        echo "Página não encontrada.";
 }
-require __DIR__ . "/" . $permitidas[$pagina];
 ?>
