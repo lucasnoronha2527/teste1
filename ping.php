@@ -2,27 +2,33 @@
 if (isset($_GET["host"])) {
     $host = $_GET["host"];
 
-    // 1) Valida: só aceita IP ou nome de domínio válidos
+    // 1) Valida o formato: só IP ou nome de domínio
     if (!filter_var($host, FILTER_VALIDATE_IP) &&
         !filter_var($host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME)) {
         exit("Host inválido.");
     }
 
-    // 2) proc_open com array de argumentos: o comando é executado
-    //    diretamente, SEM passar por um shell, então não há injeção
-    $descritores = [1 => ["pipe", "w"], 2 => ["pipe", "w"]];
-    $proc = proc_open(["ping", "-c", "1", $host], $descritores, $pipes);
+    // 2) Resolve o nome e bloqueia IPs privados/reservados (evita SSRF)
+    $ip = filter_var($host, FILTER_VALIDATE_IP) ? $host : gethostbyname($host);
+    if (!filter_var($ip, FILTER_VALIDATE_IP,
+            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+        exit("Host não permitido.");
+    }
 
-    if (is_resource($proc)) {
-        $saida = stream_get_contents($pipes[1]);
-        fclose($pipes[1]);
-        fclose($pipes[2]);
-        proc_close($proc);
-        echo "<pre>" . htmlspecialchars($saida, ENT_QUOTES, "UTF-8") . "</pre>";
+    // 3) Teste de conexão feito pelo PHP, sem executar comandos do sistema
+    $inicio = microtime(true);
+    $conexao = @fsockopen($ip, 80, $errno, $errstr, 3);
+
+    if ($conexao) {
+        fclose($conexao);
+        $ms = round((microtime(true) - $inicio) * 1000);
+        echo "Host acessível (" . (int) $ms . " ms).";
+    } else {
+        echo "Host inacessível.";
     }
 }
 ?>
 <form method="GET">
   <input name="host" placeholder="Host para testar">
-  <button>Ping</button>
+  <button>Testar conexão</button>
 </form>
