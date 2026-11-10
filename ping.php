@@ -1,34 +1,39 @@
 <?php
-if (isset($_GET["host"])) {
-    $host = $_GET["host"];
-
-    // 1) Valida o formato: só IP ou nome de domínio
-    if (!filter_var($host, FILTER_VALIDATE_IP) &&
-        !filter_var($host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME)) {
-        exit("Host inválido.");
+// Lista fixa de destinos permitidos (allowlist)
+if (isset($_GET["alvo"])) {
+    // Cada caso usa um endereço FIXO: a entrada do usuário
+    // só escolhe a opção e nunca vira o destino da conexão
+    switch ($_GET["alvo"]) {
+        case "google":
+            $destino = "www.google.com";
+            break;
+        case "cloudflare":
+            $destino = "1.1.1.1";
+            break;
+        case "github":
+            $destino = "github.com";
+            break;
+        default:
+            exit("Destino não permitido.");
     }
 
-    // 2) Resolve o nome e bloqueia IPs privados/reservados (evita SSRF)
-    $ip = filter_var($host, FILTER_VALIDATE_IP) ? $host : gethostbyname($host);
-    if (!filter_var($ip, FILTER_VALIDATE_IP,
-            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-        exit("Host não permitido.");
-    }
-
-    // 3) Teste de conexão feito pelo PHP, sem executar comandos do sistema
     $inicio = microtime(true);
-    $conexao = @fsockopen($ip, 80, $errno, $errstr, 3);
+    $conexao = @fsockopen($destino, 80, $errno, $errstr, 3);
 
     if ($conexao) {
         fclose($conexao);
         $ms = round((microtime(true) - $inicio) * 1000);
-        echo "Host acessível (" . (int) $ms . " ms).";
+        echo "Destino acessível (" . (int) $ms . " ms).";
     } else {
-        echo "Host inacessível.";
+        echo "Destino inacessível.";
     }
 }
 ?>
 <form method="GET">
-  <input name="host" placeholder="Host para testar">
+  <select name="alvo">
+    <option value="google">Google</option>
+    <option value="cloudflare">Cloudflare</option>
+    <option value="github">GitHub</option>
+  </select>
   <button>Testar conexão</button>
 </form>
